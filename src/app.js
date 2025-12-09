@@ -44,13 +44,13 @@ app.post("/login",async (req,res)=>{
             return res.status(404).send({ error: 'User not found with email' });
         }
         
-        const isPasswordValid=await bcrypt.compare(password,user.password);
+        const isPasswordValid=user.validatePassword(password);
         if(!isPasswordValid){
             return res.status(401).send({ error: 'Invalid password' });
         }   
 
         else {
-            const token=await jwt.sign({_id:user._id},process.env.JWT_SECRET||"mysecretkey",{expiresIn:"1d"});
+            const token= await user.getJWT();
             console.log("Generated Token:", token);
             res.cookie("token",token);
             return res.status(202).send({ message: 'login successful',user});
