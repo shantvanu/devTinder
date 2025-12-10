@@ -2,84 +2,22 @@ const express = require('express');
 const app = express();
 require('dotenv').config();
 const port = process.env.PORT || 7777;
-const connectDB=require('./db');
-const {User}=require("./models/user.js");
-const validateSignUp=require("./utils/validate.js");
+const connectDB=require('./config/db.js');
+const {User}=require("./models/user.model.js");
+const validateSignUp=require("./utils/validateSignUp.js");
 const bcrypt = require('bcrypt');
 app.use(express.json());
 const jwt = require('jsonwebtoken');
-const cookieParser= require('cookie-parser');
-const userAuth=require('./middleware/auth.js').userAuth;
+const cookie= require('cookie-parser');
+const userAuth=require('./middleware/auth.middleware.js').userAuth;
 
+const authRouter=require('./routes/auth.router.js');
+const profileRouter=require('./routes/profile.router.js');
+const requestRouter=require('./routes/request.router.js');
 
-app.post("/signup",async (req,res)=>{
-    console.log(req.body);
-    try {
-        validateSignUp(req.body);
-        const {firstName,lastName,email,password}=req.body;
-        const hashPassword=await bcrypt.hash(password,10);
-        const user = new User(
-            {
-                firstName,
-                lastName,
-                email,
-                password:hashPassword
-            }
-        );
-        const saved = await user.save();
-        console.log('User saved:');
-        return res.status(201).send({ message: 'added successfully'});
-    } catch (err) {
-        console.error('Error saving user:', err);
-        return res.status(500).send({ error: 'Failed to save user', details: err.message });
-    }
-})
-
-app.post("/login",async (req,res)=>{
-    console.log(req.body);      
-    try {
-        const {email,password}=req.body;
-        const user = await User.findOne({email:email});
-        if(!user){
-            return res.status(404).send({ error: 'User not found with email' });
-        }
-        
-        const isPasswordValid=user.validatePassword(password);
-        if(!isPasswordValid){
-            return res.status(401).send({ error: 'Invalid password' });
-        }   
-
-        else {
-            const token= await user.getJWT();
-            console.log("Generated Token:", token);
-            res.cookie("token",token);
-            return res.status(202).send({ message: 'login successful',user});
-        }
-    } catch (err) { 
-        console.error('Error during login:', err);
-        return res.status(500).send({ error: 'Login failed', details: err.message });
-    }
-});
-
-app.get("/profile",userAuth,async (req,res)=>{
-    try {
-        const user= req.user;
-    res.send({message:"user profile fetched successfully",user});
-    
-} catch (error) {
-        throw new Error("Unauthorized access");   
-    }
-})
-
-app.get("/feed",async (req,res)=>{
-    try {
-        const user = await User.find({});
-        return res.status(202).send({ message: 'all found successfully',user});
-    } catch (err) {
-        console.error('Error saving user:', err);
-        return res.status(500).send({ error: 'Failed to find user', details: err.message });
-    }
-})
+app.use("/",authRouter);
+app.use("/",profileRouter);
+app.use("/",requestRouter);
 
 connectDB()
 .then(() => {

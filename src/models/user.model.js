@@ -21,7 +21,14 @@ const userSchema= new mongoose.Schema({
         unique:true,
         trim:true,
     },
+    about:{
+type:String,
+maxLength:500,
+    },
+photoUrl:{
+type:String,
 
+},
     age:{
         type:Number,
         min:18,
